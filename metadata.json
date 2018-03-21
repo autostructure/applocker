@@ -1,6 +1,6 @@
 {
   "name": "autostructure-applocker",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "author": "Jeffrey Frelick",
   "summary": "",
   "license": "Apache-2.0",
@@ -12,9 +12,10 @@
     {
       "operatingsystem": "windows",
       "operatingsystemrelease": [
-        "2008 R2",
+        "2016 R2",
+        "2016",
         "2012 R2",
-        "10"
+        "2012"
       ]
     }
   ],
@@ -23,8 +24,5 @@
       "name": "puppet",
       "version_requirement": ">= 4.7.0 < 6.0.0"
     }
-  ],
-  "pdk-version": "1.4.1",
-  "template-url": "file:///opt/puppetlabs/pdk/share/cache/pdk-templates.git",
-  "template-ref": "1.4.1-0-g52adbbb"
+  ]
 }
