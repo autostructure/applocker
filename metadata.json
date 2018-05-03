@@ -2,9 +2,11 @@
   "name": "autostructure-applocker",
   "version": "1.0.0",
   "author": "Jeffrey Frelick",
-  "summary": "",
+  "summary": "Manage Microsoft Windows AppLocker rules",
   "license": "Apache-2.0",
-  "source": "",
+  "source": "https://github.com/autostructure/applocker.git",
+  "project_page": "https://github.com/autostructure/applocker",
+  "issues_url": "https://github.com/autostructure/applocker/issues",
   "dependencies": [
 
   ],
