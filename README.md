@@ -1,5 +1,8 @@
 # applocker
 [![License](https://img.shields.io/:license-apache-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.html)
+[![Puppet Forge](https://img.shields.io/puppetforge/v/autostructure/applocker.svg)](https://forge.puppetlabs.com/autostructure/applocker)
+[![Puppet Forge](https://img.shields.io/puppetforge/f/autostructure/applocker.svg)](https://forge.puppetlabs.com/autostructure/applocker)
+[![Build Status](https://travis-ci.org/autostructure/applocker.svg?branch=master)](https://travis-ci.org/autostructure/applocker)
 
 [Microsoft's AppLocker Overview]: https://docs.microsoft.com/en-us/windows/security/threat-protection/applocker/applocker-overview
 [GitHub AppLocker Project]: https://github.com/autostructure/applocker
@@ -455,4 +458,4 @@ A GitHub pull request must be submitted to make changes to this module.
 
 ## Release Notes/Contributors/Etc.
 
-Release v1.0 coming soon.
+Release v1.0.0 to Puppet Forge on May 3, 2018.
