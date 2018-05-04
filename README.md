@@ -37,7 +37,7 @@ Manage Windows&reg; AppLocker rules using this module. It contains a custom type
 
 Create, modify, or delete AppLocker rules using the `applocker_rule` resource.
 
-The module enforces the AppLocker rules using a Puppet type provider that makes calls to the Windows-native `powershell.exe` executable.  Therefore, `powershell.exe` must be able to run to enforce AppLocker rules.  If an AppLocker rule is created that restricts access to `powershell.exe`, then this module will be useless.  The [Resources Required for Setup](#resources-required-for-setup) section below contains an example of an AppLocker rule that can be used that enables the Administrator to run `powershell.exe`.  A sample rule also exists in the `applocker_startup.pp` file, found in examples directory.
+The module enforces the AppLocker rules using a Puppet type provider that makes calls to the Windows-native `powershell.exe` executable.  Therefore, `powershell.exe` must be able to run to enforce AppLocker rules.  If an AppLocker rule is created that restricts access to `powershell.exe`, then this module will be useless.  The [Setup Required Resources](#setup-required-resources) section below contains an example of an AppLocker rule that can be used that enables the Administrator to run `powershell.exe`.  A sample rule also exists in the `applocker_startup.pp` file, found in examples directory.
 
 The module has been tested in Windows&reg; Server 2016 and 2012R2 environments running Puppet Enterprise 2017.3.
 
