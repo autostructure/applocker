@@ -6,8 +6,8 @@ Puppet::Type.type(:applocker_rule).provide(:powershell) do
 
   mk_resource_methods
 
-  confine :kernel => :windows
-  commands :ps => File.exist?("#{ENV['SYSTEMROOT']}\\system32\\windowspowershell\\v1.0\\powershell.exe") ? "#{ENV['SYSTEMROOT']}\\system32\\windowspowershell\\v1.0\\powershell.exe" : 'powershell.exe'
+  confine kernel: :windows
+  commands ps: File.exist?("#{ENV['SYSTEMROOT']}\\system32\\windowspowershell\\v1.0\\powershell.exe") ? "#{ENV['SYSTEMROOT']}\\system32\\windowspowershell\\v1.0\\powershell.exe" : 'powershell.exe'
 
   def initialize(value = {})
     super(value)
@@ -34,7 +34,7 @@ Puppet::Type.type(:applocker_rule).provide(:powershell) do
     ret_array = []
     fpc = node.get_elements('.//Exceptions/FilePathCondition')
     no_filepathconditions = fpc.nil? || fpc.empty?
-    fpc.each { |xml| ret_array << xml.attribute('Path').to_string.slice(/=['|"]*(.*)['|"]/,1) } unless no_filepathconditions
+    fpc.each { |xml| ret_array << xml.attribute('Path').to_string.slice(%r{=['|"]*(.*)['|"]}, 1) } unless no_filepathconditions
     ret_array
   end
 
@@ -57,22 +57,24 @@ Puppet::Type.type(:applocker_rule).provide(:powershell) do
     no_filepublisherconditions = pc.nil? || pc.empty?
     # CAVEAT: you must you double quotes around key for the puppet provider to match the value in the manifest.
     #         symbols and single quotes caused puppet agent to think the property changed value (mistakenly).
-    fc.each { |xml| ret_array << { "path" => xml.attribute('Path').to_string.slice(/=['|"]*(.*)['|"]/,1) } } unless no_filepathconditions
-    hc.each { |xml|
-      ret_array << { "hash" => xml.attribute('Data').to_string.slice(/=['|"]*(.*)['|"]/,1),
-                     "file" => xml.attribute('SourceFileName').to_string.slice(/=['|"]*(.*)['|"]/,1),
-                     "type" => xml.attribute('Type').to_string.slice(/=['|"]*(.*)['|"]/,1),
-                     "size" => xml.attribute('SourceFileLength').to_string.slice(/=['|"]*(.*)['|"]/,1)
-                   }
-    } unless no_filehashconditions
-    pc.each { |xml|
-      ret_array << { "publisher"  => xml.attribute('PublisherName').to_string.slice(/=['|"]*(.*)['|"]/,1),
-                     "product"    => xml.attribute('ProductName').to_string.slice(/=['|"]*(.*)['|"]/,1),
-                     "binaryname" => xml.attribute('BinaryName').to_string.slice(/=['|"]*(.*)['|"]/,1),
-                     "hi_version" => xml.elements[1].attribute('HighSection').to_string.slice(/=['|"]*(.*)['|"]/,1),
-                     "lo_version" => xml.elements[1].attribute('LowSection').to_string.slice(/=['|"]*(.*)['|"]/,1)
-                   }
-    } unless no_filepublisherconditions
+    fc.each { |xml| ret_array << { 'path' => xml.attribute('Path').to_string.slice(%r{=['|"]*(.*)['|"]}, 1) } } unless no_filepathconditions
+    unless no_filehashconditions
+      hc.each do |xml|
+        ret_array << { 'hash' => xml.attribute('Data').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+                       'file' => xml.attribute('SourceFileName').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+                       'type' => xml.attribute('Type').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+                       'size' => xml.attribute('SourceFileLength').to_string.slice(%r{=['|"]*(.*)['|"]}, 1) }
+      end
+    end
+    unless no_filepublisherconditions
+      pc.each do |xml|
+        ret_array << { 'publisher'  => xml.attribute('PublisherName').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+                       'product'    => xml.attribute('ProductName').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+                       'binaryname' => xml.attribute('BinaryName').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+                       'hi_version' => xml.elements[1].attribute('HighSection').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+                       'lo_version' => xml.elements[1].attribute('LowSection').to_string.slice(%r{=['|"]*(.*)['|"]}, 1) }
+      end
+    end
     ret_array
   end
 
@@ -105,8 +107,8 @@ Puppet::Type.type(:applocker_rule).provide(:powershell) do
       # REXML Attributes are returned with the attribute and its value, including delimiters.
       # e.g. <RuleCollection Type='Exe' ...> returns "Type='Exe'".
       # So, the value must be parsed using slice.
-      rule_collection_type = rc.attribute('Type').to_string.slice(/=['|"]*(.*)['|"]/,1)
-      rule_collection_mode = rc.attribute('EnforcementMode').to_string.slice(/=['|"]*(.*)['|"]/,1)
+      rule_collection_type = rc.attribute('Type').to_string.slice(%r{=['|"]*(.*)['|"]}, 1)
+      rule_collection_mode = rc.attribute('EnforcementMode').to_string.slice(%r{=['|"]*(.*)['|"]}, 1)
       # must loop through each type of rule tag, I couldn't find how to grab tag name from REXML :/
       rc.each_element('FilePathRule') do |fr|
         rule = {
@@ -114,16 +116,16 @@ Puppet::Type.type(:applocker_rule).provide(:powershell) do
           rule_type:         :path,
           type:              rule_collection_type,
           mode:              rule_collection_mode,
-          action:            fr.attribute('Action').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          name:              fr.attribute('Name').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          description:       fr.attribute('Description').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          id:                fr.attribute('Id').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          user_or_group_sid: fr.attribute('UserOrGroupSid').to_string.slice(/=['|"]*(.*)['|"]/,1),
+          action:            fr.attribute('Action').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          name:              fr.attribute('Name').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          description:       fr.attribute('Description').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          id:                fr.attribute('Id').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          user_or_group_sid: fr.attribute('UserOrGroupSid').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
           conditions:        conditions2hasharray(fr),
           exceptions:        exceptions2array(fr),
         }
         # push new Puppet::Provider object into an array after property hash created.
-        provider_array.push(self.new(rule))
+        provider_array.push(new(rule))
       end
       rc.each_element('FilePublisherRule') do |pr|
         rule = {
@@ -131,16 +133,16 @@ Puppet::Type.type(:applocker_rule).provide(:powershell) do
           rule_type:         :publisher,
           type:              rule_collection_type,
           mode:              rule_collection_mode,
-          action:            pr.attribute('Action').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          name:              pr.attribute('Name').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          description:       pr.attribute('Description').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          id:                pr.attribute('Id').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          user_or_group_sid: pr.attribute('UserOrGroupSid').to_string.slice(/=['|"]*(.*)['|"]/,1),
+          action:            pr.attribute('Action').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          name:              pr.attribute('Name').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          description:       pr.attribute('Description').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          id:                pr.attribute('Id').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          user_or_group_sid: pr.attribute('UserOrGroupSid').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
           conditions:        conditions2hasharray(pr),
           exceptions:        exceptions2array(pr),
         }
         # push new Puppet::Provider object into an array after property hash created.
-        provider_array.push(self.new(rule))
+        provider_array.push(new(rule))
       end
       rc.each_element('FileHashRule') do |hr|
         rule = {
@@ -148,16 +150,16 @@ Puppet::Type.type(:applocker_rule).provide(:powershell) do
           rule_type:         :hash,
           type:              rule_collection_type,
           mode:              rule_collection_mode,
-          action:            hr.attribute('Action').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          name:              hr.attribute('Name').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          description:       hr.attribute('Description').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          id:                hr.attribute('Id').to_string.slice(/=['|"]*(.*)['|"]/,1),
-          user_or_group_sid: hr.attribute('UserOrGroupSid').to_string.slice(/=['|"]*(.*)['|"]/,1),
+          action:            hr.attribute('Action').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          name:              hr.attribute('Name').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          description:       hr.attribute('Description').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          id:                hr.attribute('Id').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
+          user_or_group_sid: hr.attribute('UserOrGroupSid').to_string.slice(%r{=['|"]*(.*)['|"]}, 1),
           conditions:        conditions2hasharray(hr),
           exceptions:        exceptions2array(hr),
         }
         # push new Puppet::Provider object into an array after property hash created.
-        provider_array.push(self.new(rule))
+        provider_array.push(new(rule))
       end
     end
     provider_array
@@ -169,155 +171,153 @@ Puppet::Type.type(:applocker_rule).provide(:powershell) do
   end
 
   def create
-    begin
-      Puppet.debug "applocker_rule: powershell.rb: create [rule_type=#{@resource[:rule_type]}]"
-      is_valid_rule_type = [:path, :hash, :publisher].include? @resource[:rule_type]
-      raise "applocker_rule: powershell.rb: create: undefined rule type: #{@resource[:rule_type]}" unless is_valid_rule_type
-      invalid = @resource[:rule_type].nil? || @resource[:rule_type].empty? || @resource[:user_or_group_sid].nil? || @resource[:user_or_group_sid].empty? || @resource[:name].nil? || @resource[:name].empty?
-      raise 'applocker_rule: powershell.rb: create: The applocker_rule create method failed, missing required parameters [rule_type, user_or_group_sid].' if invalid
-      # Find the filepath for the FileInformation object
-      filepath = ''
-      is_filepath_set = false
-      conditions_hash = {}
-      conditions_hash = @resource[:conditions].first unless @resource[:conditions].nil? || @resource[:conditions].empty?
-      # is_conditions_hash_complete = false
+    Puppet.debug "applocker_rule: powershell.rb: create [rule_type=#{@resource[:rule_type]}]"
+    is_valid_rule_type = [:path, :hash, :publisher].include? @resource[:rule_type]
+    raise "applocker_rule: powershell.rb: create: undefined rule type: #{@resource[:rule_type]}" unless is_valid_rule_type
+    invalid = @resource[:rule_type].nil? || @resource[:rule_type].empty? || @resource[:user_or_group_sid].nil? || @resource[:user_or_group_sid].empty? || @resource[:name].nil? || @resource[:name].empty?
+    raise 'applocker_rule: powershell.rb: create: The applocker_rule create method failed, missing required parameters [rule_type, user_or_group_sid].' if invalid
+    # Find the filepath for the FileInformation object
+    filepath = ''
+    is_filepath_set = false
+    conditions_hash = {}
+    conditions_hash = @resource[:conditions].first unless @resource[:conditions].nil? || @resource[:conditions].empty?
+    # is_conditions_hash_complete = false
+    case @resource[:rule_type]
+    when :path
+      if !@resource[:filepath].nil? && !@resource[:filepath].empty?
+        filepath = @resource[:filepath]
+        is_filepath_set = true
+      elsif !conditions_hash.nil? && !conditions_hash.empty?
+        filepath = conditions_hash['path']
+        is_filepath_set = true
+        # is_conditions_hash_complete = !conditions_hash['path'].empty?
+        # Puppet.debug "#{@resource[:rule_type]} rule: is_conditions_hash_complete = #{is_conditions_hash_complete}"
+      end
+    when :hash
+      filepath = @resource[:filepath]
+      is_filepath_set = true
+      # filehashrules might have multiple files defined in conditions.
+      # maybe just support a single file right now via this filepath parameter.
+    when :publisher
+      filepath = @resource[:filepath]
+      is_filepath_set = true
+    end
+    #
+    # TODO: pass this filename to a ps(Get-AppLockerFileInformation) and see if it errors grabbing the publisher information (must pipe to New Publisher Rule to get error).
+    no_filepath = filepath.nil? || filepath.empty?
+    no_conditions = conditions_hash.nil? || conditions_hash.empty?
+    is_incomplete_hash = true
+    is_directory = false
+    unless no_conditions
       case @resource[:rule_type]
       when :path
-        if !@resource[:filepath].nil? && !@resource[:filepath].empty?
-          filepath = @resource[:filepath]
-          is_filepath_set = true
-        elsif !conditions_hash.nil? && !conditions_hash.empty?
-          filepath = conditions_hash['path']
-          is_filepath_set = true
-          # is_conditions_hash_complete = !conditions_hash['path'].empty?
-          # Puppet.debug "#{@resource[:rule_type]} rule: is_conditions_hash_complete = #{is_conditions_hash_complete}"
-        end
+        is_incomplete_hash = conditions_hash['path'].nil?
       when :hash
-        filepath = @resource[:filepath]
-        is_filepath_set = true
-        # filehashrules might have multiple files defined in conditions.
-        # maybe just support a single file right now via this filepath parameter.
+        is_incomplete_hash = conditions_hash['hash'].nil? || conditions_hash['size'].nil? || conditions_hash['file'].nil? || conditions_hash['type'].nil?
       when :publisher
-        filepath = @resource[:filepath]
-        is_filepath_set = true
+        is_incomplete_hash = conditions_hash['publisher'].nil? || conditions_hash['product'].nil? || conditions_hash['binaryname'].nil? || conditions_hash['hi_version'].nil? || conditions_hash['lo_version'].nil?
       end
-      #
-      # TODO: pass this filename to a ps(Get-AppLockerFileInformation) and see if it errors grabbing the publisher information (must pipe to New Publisher Rule to get error).
-      no_filepath = filepath.nil? || filepath.empty?
-      no_conditions = conditions_hash.nil? || conditions_hash.empty?
-      is_incomplete_hash = true
-      is_directory = false
-      unless no_conditions
-        case @resource[:rule_type]
-        when :path
-          is_incomplete_hash = conditions_hash['path'].nil?
-        when :hash
-          is_incomplete_hash = conditions_hash['hash'].nil? || conditions_hash['size'].nil? || conditions_hash['file'].nil? || conditions_hash['type'].nil?
-        when :publisher
-          is_incomplete_hash = conditions_hash['publisher'].nil? || conditions_hash['product'].nil? || conditions_hash['binaryname'].nil? || conditions_hash['hi_version'].nil? || conditions_hash['lo_version'].nil?
-        end
-      end
-      # need to supply a specific file's path to the FileInformation cmdlet, unless a full conditions hash is specified...
-      # can only resolve conditions hash between manifest and prefetch if all the keys in the hash are completely specified, or the hash is omitted.
-      # condtions property is given precedence over filepath parameter (properties over parameters.)
-      invalid_resource = no_filepath && ( no_conditions || is_incomplete_hash )
-      use_conditions_hash = !( no_conditions || is_incomplete_hash )
-      use_filepath_param = !use_conditions_hash && !no_filepath
-      err_msg = "applocker_rule: powershell.rb: create: error creating AppLocker '#{@resource[:name]}' rule: invalid resource definition - no filepath or conditions hash found, please specify either a filepath (parameter) or a complete conditions hash (property); a conditions property takes precedence over the filepath parameter."
-      raise err_msg if invalid_resource
-      # Environment variable substitution
-      # AppLocker only recognizes the "%Variable%" format in the xml attributes,
-      # vars are not recognized as an input param to Get-AppLockerFileInformation -Path "%Variable%" <= NOT ALLOWED
-      # so must substitute the variables for input into Get-AppLockerFileInformation -Path argument...
-      unless no_filepath
-        filepath = filepath.gsub(/%[Oo][Ss][Dd][Rr][Ii][Vv][Ee]%/,'$Env:SystemDrive')
-        filepath = filepath.gsub(/%[Pp][Rr][Oo][Gg][Rr][Aa][Mm][Ff][Ii][Ll][Ee][Ss]%/,'$Env:ProgramFiles')
-        filepath = filepath.gsub(/%[Ww][Ii][Nn][Dd][Ii][Rr]%/,'$Env:WinDir')
-        filepath = filepath.gsub(/%[Ss][Yy][Ss][Tt][Ee][Mm]32%/,'$Env:WinDir\System32')
-        # The AppLocker variables "%REMOVABLE%" and "%HOT%" will not be recognized by Get-AppLockerFileInformation
-        # So, setting is_filepath_set to false, below the Get-AppLockerFileInformation will be fed
-        # the dummy value ComSpec to avoid breaking the powershell call.
-        is_filepath_set = false if filepath.upcase.include?('%REMOVABLE%') || filepath.upcase.include?('%HOT%')
-        is_directory = filepath.end_with?('*','\\','\*')
-        # GUI is okay with paths ending in '\*',
-        # but Get-AppLockerFileInformation seems to reject some paths.
-        # remove trailing slash, *, or *.*
-        filepath = filepath[/.*[^\\|*|\.$]/]
-      end
-      # set filepath to a known o/s file (you know will exist) to supply something for Get-AppLockerFileInformation
-      # we can use 'dummy' xml output and set attributes ourselves.
-      # For directories, just set -Path to a known file just to generate XML to modify later...
-      filepath = '$Env:ComSpec' if no_filepath
-      filepath = '$Env:ComSpec' if is_directory
-      ps_arg = '-Path'
-      # ps_arg = '-Directory' if is_directory
-      xml_out = ps("Get-AppLockerFileInformation #{ps_arg} \"#{filepath}\" | New-AppLockerPolicy -Xml -Optimize -RuleType #{@resource[:rule_type]} -User \"#{@resource[:user_or_group_sid]}\"")
-      xml_doc = Document.new xml_out
-      #
-      # The New-AppLockerPolicy cmdlet overwrites some supplied values when it generate the xml
-      # Set xml attributes to, again, match what's in the puppet manifest resource declaration.
-      # Update 'name', 'description', 'action' properties.  The descrption and action properties are not required.
-      # Also update 'type', but note it is associated with an attribute from an element 1 level higher (RuleCollection).
-      xml_doc.root.elements[1].attributes['Type'] = @resource[:type] unless @resource[:type].nil?
-      xml_doc.root.elements[1].elements[1].attributes['Name'] = @resource[:name] unless @resource[:name].nil? || @resource[:name].empty?
-      xml_doc.root.elements[1].elements[1].attributes['Id'] = @resource[:id] unless @resource[:id].nil? || @resource[:id].empty?
-      xml_doc.root.elements[1].elements[1].attributes['Description'] = @resource[:description] unless @resource[:description].nil?
-      xml_doc.root.elements[1].elements[1].attributes['Action'] = @resource[:action] unless @resource[:action].nil? || @resource[:action].empty?
-      #
-      # process conditions property
-      # NOTE:
-      # Get-AppLockerFileInformation sometimes changes the 'path' to include environment vars (e.g. C:\Windows => %WINDIR%)
-      # Since we must match the 'path' supplied in the puppet manifest (so the provider knows whether property has changed),
-      # set the xml values explicitly to match the resource declaration in the puppet manifest.
-      unless no_conditions
-        case @resource[:rule_type]
-        when :path
-          xml_doc.root.elements[1].elements[1].elements[1].elements[1].attributes['Path'] = conditions_hash['path']
-        when :hash
-          xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['Data'] = conditions_hash['hash']
-          xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['SourceFileLength'] = conditions_hash['size']
-          xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['SourceFileName'] = conditions_hash['file']
-          xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['Type'] = conditions_hash['type']
-        when :publisher
-          xml_doc.root.elements[1].elements[1].elements[1].elements[1].attributes['PublisherName'] = conditions_hash['publisher']
-          xml_doc.root.elements[1].elements[1].elements[1].elements[1].attributes['ProductName'] = conditions_hash['product']
-          xml_doc.root.elements[1].elements[1].elements[1].elements[1].attributes['BinaryName'] = conditions_hash['binaryname']
-          xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['HighSection'] = conditions_hash['hi_version']
-          xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['LowSection'] = conditions_hash['lo_version']
-        end
-      end
-      #
-      # process exceptions property
-      # NOTE: Limited exceptions support...
-      # only supporting an array of filepaths to create filepathrules.
-      # support publisher and hash exceptions in a future release.
-      exceptions_array = []
-      exceptions_array = @resource[:exceptions]
-      unless exceptions_array.nil? || exceptions_array.empty?
-        # exceptions_node = Element.new 'Exceptions'
-        exceptions_node = xml_doc.root.elements[1].elements[1].add_element('Exceptions')
-        # exceptions_node = xml_doc.root.get_elements '//Exceptions'
-        exceptions_array.each do |path|
-          # check for, if !path.strip.empty?, because powershell didn't like an empty path: <FilePathCondition Path=''/>
-          exceptions_node.add_element('FilePathCondition', 'Path' => path) if !path.strip.empty?
-        end
-      end
-      #
-      # xml complete, use it to create applocker rule...
-      Puppet.debug
-      Puppet.debug 'applocker_rule: powershell.rb: create: xml_doc (final)...'
-      Puppet.debug xml_doc
-      Puppet.debug
-      testfile = File.open(tempfile, 'w')
-      testfile.puts xml_doc
-      testfile.close
-      # NOTE: Used Set-AppLockerPolicy because New-AppLockerPolicy had an unusual interface.
-      # NOTE: The '-Merge' option is very important, use it or it will purge any rules not defined in the Xml.
-      ps("Set-AppLockerPolicy -Merge -XMLPolicy #{tempfile}")
-      File.unlink(tempfile)
-    rescue err
-      Puppet.debug "applocker_rule: powershell.rb: create: Error = #{err}"
     end
+    # need to supply a specific file's path to the FileInformation cmdlet, unless a full conditions hash is specified...
+    # can only resolve conditions hash between manifest and prefetch if all the keys in the hash are completely specified, or the hash is omitted.
+    # condtions property is given precedence over filepath parameter (properties over parameters.)
+    invalid_resource = no_filepath && (no_conditions || is_incomplete_hash)
+    use_conditions_hash = !(no_conditions || is_incomplete_hash)
+    use_filepath_param = !use_conditions_hash && !no_filepath
+    err_msg = "applocker_rule: powershell.rb: create: error creating AppLocker '#{@resource[:name]}' rule: invalid resource definition - no filepath or conditions hash found, please specify either a filepath (parameter) or a complete conditions hash (property); a conditions property takes precedence over the filepath parameter."
+    raise err_msg if invalid_resource
+    # Environment variable substitution
+    # AppLocker only recognizes the "%Variable%" format in the xml attributes,
+    # vars are not recognized as an input param to Get-AppLockerFileInformation -Path "%Variable%" <= NOT ALLOWED
+    # so must substitute the variables for input into Get-AppLockerFileInformation -Path argument...
+    unless no_filepath
+      filepath = filepath.gsub(%r{%[Oo][Ss][Dd][Rr][Ii][Vv][Ee]%}, '$Env:SystemDrive')
+      filepath = filepath.gsub(%r{%[Pp][Rr][Oo][Gg][Rr][Aa][Mm][Ff][Ii][Ll][Ee][Ss]%}, '$Env:ProgramFiles')
+      filepath = filepath.gsub(%r{%[Ww][Ii][Nn][Dd][Ii][Rr]%}, '$Env:WinDir')
+      filepath = filepath.gsub(%r{%[Ss][Yy][Ss][Tt][Ee][Mm]32%}, '$Env:WinDir\System32')
+      # The AppLocker variables "%REMOVABLE%" and "%HOT%" will not be recognized by Get-AppLockerFileInformation
+      # So, setting is_filepath_set to false, below the Get-AppLockerFileInformation will be fed
+      # the dummy value ComSpec to avoid breaking the powershell call.
+      is_filepath_set = false if filepath.upcase.include?('%REMOVABLE%') || filepath.upcase.include?('%HOT%')
+      is_directory = filepath.end_with?('*', '\\', '\*')
+      # GUI is okay with paths ending in '\*',
+      # but Get-AppLockerFileInformation seems to reject some paths.
+      # remove trailing slash, *, or *.*
+      filepath = filepath[%r{.*[^\\|*|\.$]}]
+    end
+    # set filepath to a known o/s file (you know will exist) to supply something for Get-AppLockerFileInformation
+    # we can use 'dummy' xml output and set attributes ourselves.
+    # For directories, just set -Path to a known file just to generate XML to modify later...
+    filepath = '$Env:ComSpec' if no_filepath
+    filepath = '$Env:ComSpec' if is_directory
+    ps_arg = '-Path'
+    # ps_arg = '-Directory' if is_directory
+    xml_out = ps("Get-AppLockerFileInformation #{ps_arg} \"#{filepath}\" | New-AppLockerPolicy -Xml -Optimize -RuleType #{@resource[:rule_type]} -User \"#{@resource[:user_or_group_sid]}\"")
+    xml_doc = Document.new xml_out
+    #
+    # The New-AppLockerPolicy cmdlet overwrites some supplied values when it generate the xml
+    # Set xml attributes to, again, match what's in the puppet manifest resource declaration.
+    # Update 'name', 'description', 'action' properties.  The descrption and action properties are not required.
+    # Also update 'type', but note it is associated with an attribute from an element 1 level higher (RuleCollection).
+    xml_doc.root.elements[1].attributes['Type'] = @resource[:type] unless @resource[:type].nil?
+    xml_doc.root.elements[1].elements[1].attributes['Name'] = @resource[:name] unless @resource[:name].nil? || @resource[:name].empty?
+    xml_doc.root.elements[1].elements[1].attributes['Id'] = @resource[:id] unless @resource[:id].nil? || @resource[:id].empty?
+    xml_doc.root.elements[1].elements[1].attributes['Description'] = @resource[:description] unless @resource[:description].nil?
+    xml_doc.root.elements[1].elements[1].attributes['Action'] = @resource[:action] unless @resource[:action].nil? || @resource[:action].empty?
+    #
+    # process conditions property
+    # NOTE:
+    # Get-AppLockerFileInformation sometimes changes the 'path' to include environment vars (e.g. C:\Windows => %WINDIR%)
+    # Since we must match the 'path' supplied in the puppet manifest (so the provider knows whether property has changed),
+    # set the xml values explicitly to match the resource declaration in the puppet manifest.
+    unless no_conditions
+      case @resource[:rule_type]
+      when :path
+        xml_doc.root.elements[1].elements[1].elements[1].elements[1].attributes['Path'] = conditions_hash['path']
+      when :hash
+        xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['Data'] = conditions_hash['hash']
+        xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['SourceFileLength'] = conditions_hash['size']
+        xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['SourceFileName'] = conditions_hash['file']
+        xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['Type'] = conditions_hash['type']
+      when :publisher
+        xml_doc.root.elements[1].elements[1].elements[1].elements[1].attributes['PublisherName'] = conditions_hash['publisher']
+        xml_doc.root.elements[1].elements[1].elements[1].elements[1].attributes['ProductName'] = conditions_hash['product']
+        xml_doc.root.elements[1].elements[1].elements[1].elements[1].attributes['BinaryName'] = conditions_hash['binaryname']
+        xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['HighSection'] = conditions_hash['hi_version']
+        xml_doc.root.elements[1].elements[1].elements[1].elements[1].elements[1].attributes['LowSection'] = conditions_hash['lo_version']
+      end
+    end
+    #
+    # process exceptions property
+    # NOTE: Limited exceptions support...
+    # only supporting an array of filepaths to create filepathrules.
+    # support publisher and hash exceptions in a future release.
+    exceptions_array = []
+    exceptions_array = @resource[:exceptions]
+    unless exceptions_array.nil? || exceptions_array.empty?
+      # exceptions_node = Element.new 'Exceptions'
+      exceptions_node = xml_doc.root.elements[1].elements[1].add_element('Exceptions')
+      # exceptions_node = xml_doc.root.get_elements '//Exceptions'
+      exceptions_array.each do |path|
+        # check for, if !path.strip.empty?, because powershell didn't like an empty path: <FilePathCondition Path=''/>
+        exceptions_node.add_element('FilePathCondition', 'Path' => path) unless path.strip.empty?
+      end
+    end
+    #
+    # xml complete, use it to create applocker rule...
+    Puppet.debug
+    Puppet.debug 'applocker_rule: powershell.rb: create: xml_doc (final)...'
+    Puppet.debug xml_doc
+    Puppet.debug
+    testfile = File.open(tempfile, 'w')
+    testfile.puts xml_doc
+    testfile.close
+    # NOTE: Used Set-AppLockerPolicy because New-AppLockerPolicy had an unusual interface.
+    # NOTE: The '-Merge' option is very important, use it or it will purge any rules not defined in the Xml.
+    ps("Set-AppLockerPolicy -Merge -XMLPolicy #{tempfile}")
+    File.unlink(tempfile)
+  rescue err
+    Puppet.debug "applocker_rule: powershell.rb: create: Error = #{err}"
   end
 
   def destroy
@@ -411,10 +411,10 @@ Puppet::Type.type(:applocker_rule).provide(:powershell) do
         node_conditions.add_element('FilePathCondition', 'Path' => conditions_hash['path'])
       when :hash
         xtra_xml_node = node_conditions.add_element('FileHashCondition')
-        xtra_xml_node.add_element('FileHash', { 'Data' => conditions_hash['hash'], 'Type' => conditions_hash['type'], 'SourceFileName' => conditions_hash['file'], 'SourceFileLength' => conditions_hash['size'] })
+        xtra_xml_node.add_element('FileHash', 'Data' => conditions_hash['hash'], 'Type' => conditions_hash['type'], 'SourceFileName' => conditions_hash['file'], 'SourceFileLength' => conditions_hash['size'])
       when :publisher
-        xtra_xml_node = node_conditions.add_element('FilePublisherCondition', { 'PublisherName' => conditions_hash['publisher'], 'ProductName' => conditions_hash['product'], 'BinaryName' => conditions_hash['binaryname'] })
-        xtra_xml_node.add_element('BinaryVersionRange', { 'HighSection' => conditions_hash['hi_version'], 'LowSection' => conditions_hash['lo_version'] })
+        xtra_xml_node = node_conditions.add_element('FilePublisherCondition', 'PublisherName' => conditions_hash['publisher'], 'ProductName' => conditions_hash['product'], 'BinaryName' => conditions_hash['binaryname'])
+        xtra_xml_node.add_element('BinaryVersionRange', 'HighSection' => conditions_hash['hi_version'], 'LowSection' => conditions_hash['lo_version'])
       end
       node.add_element node_conditions
     end
@@ -425,7 +425,7 @@ Puppet::Type.type(:applocker_rule).provide(:powershell) do
       node.add_element node_exceptions
       # check for !path.strip.empty? because powershell didn't like an empty path: <FilePathCondition Path=''/>
       e.each do |path|
-        node_exceptions.add_element('FilePathCondition', 'Path' => path) if !path.strip.empty?
+        node_exceptions.add_element('FilePathCondition', 'Path' => path) unless path.strip.empty?
       end
     end
     node

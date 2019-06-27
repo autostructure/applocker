@@ -52,5 +52,4 @@ Puppet::Type.newtype(:applocker_rule) do
   newproperty(:user_or_group_sid) do
     desc 'The AppLocker user or group system identifier.  See: https://support.microsoft.com/en-us/help/243330/well-known-security-identifiers-in-windows-operating-systems'
   end
-
 end

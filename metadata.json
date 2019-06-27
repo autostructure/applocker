@@ -1,12 +1,12 @@
 {
-  "name": "autostructure-applocker",
+  "name": "fervid-applocker",
   "version": "1.0.0",
-  "author": "Jeffrey Frelick",
+  "author": "Fervid",
   "summary": "Manage Microsoft Windows AppLocker rules",
   "license": "Apache-2.0",
-  "source": "https://github.com/autostructure/applocker.git",
-  "project_page": "https://github.com/autostructure/applocker",
-  "issues_url": "https://github.com/autostructure/applocker/issues",
+  "source": "https://github.com/fervidus/applocker.git",
+  "project_page": "https://github.com/fervidus/applocker",
+  "issues_url": "https://github.com/fervidus/applocker/issues",
   "dependencies": [
 
   ],
@@ -26,5 +26,8 @@
       "name": "puppet",
       "version_requirement": ">= 4.7.0 < 6.0.0"
     }
-  ]
+  ],
+  "pdk-version": "1.10.0",
+  "template-url": "https://github.com/puppetlabs/pdk-templates#1.10.0",
+  "template-ref": "tags/1.10.0-0-gbba9ac3"
 }
